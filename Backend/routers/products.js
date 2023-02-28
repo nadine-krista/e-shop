@@ -3,6 +3,30 @@ const express = require('express');
 const router=express.Router();
 const {Category}=require("../models/category");
 const mongoose=require('mongoose');
+const multer = require ('multer');
+
+const FILE_TYPE_MAP={
+    'image/png':'png',
+    'image/jpeg':'jpeg',
+    'image/jpg':'jpg'
+}
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      const isValid = FILE_TYPE_MAP[file.mimetype];
+      let uploadError = new Error('Invalid Image type')
+      if(isValid){
+        uploadError=null;
+      }
+      cb(uploadError, 'public/uploads')
+    },
+    filename: function (req, file, cb) {
+      const fileName=file.originalname.split(' ').join('-');
+      const extension = FILE_TYPE_MAP[file.mimetype];
+      cb(null, `${fileName}-${Date.now()}.${extension}`);
+    }
+  })
+  
+  const uploadOptions = multer({ storage: storage })
 
 router.get(`/`, async(req,res)=>{
     // const productList = await Product.find().select('name image -_id');
@@ -21,7 +45,7 @@ router.get(`/:id`,async (req,res)=>{
     res.status(200).send(product);
 })
 
-router.put('/:id',async(req,res)=>{
+router.put('/:id',uploadOptions.single('image'),async(req,res)=>{
     if(!mongoose.isValidObjectId(req.params.id)){
         return res.status(400).send('invalid Product Id');
     }
@@ -29,12 +53,25 @@ router.put('/:id',async(req,res)=>{
     if(!category){
         res.status(400).send('Invalid Category!!');
     }
+
+    const productExists=await Product.findById(req.params.id);
+    if(!productExists){
+        res.status(400).send('Product Not Found!!');
+    }
+    const file = req.file;
+    let imagePath;
+    if(file){
+        const filename=req.file.filename;// gets the file name from the uploaded diskstorage by multer. but this file name will have only the file name and not the full path of image storage.
+        const basePath = `${req.protocol}://${req.get('host')}/public/upload/`;
+        imagePath=`${basePath}${filename}`;
+    }else{
+        imagePath=productExists.image;
+    }
     const product= await Product.findByIdAndUpdate(req.params.id,{
         name:req.body.name,
         description:req.body.description,
         richDescription:req.body.richDescription,
-        image:req.body.image,
-        images:req.body.images,
+        image:imagePath,
         brand:req.body.brand,
         price:req.body.price,
         category:req.body.category,
@@ -49,19 +86,23 @@ router.put('/:id',async(req,res)=>{
     }
     res.status(200).send(product);
 })
-
-router.post('/',async(req,res)=>{
+//multer will take care of the image upload and send the file details in request.
+router.post('/',uploadOptions.single('image'),async(req,res)=>{
     const category = await Category.findById(req.body.category);
-
     if(!category) return res.status(400).send('Invalid Category!!');
+    //To make sure Image is uploaded as part of request.
+    const file = req.file;
+    if(!file) return res.status(400).send('No Image in the Request!!');
+   
+    const filename=req.file.filename;// gets the file name from the uploaded diskstorage by multer. but this file name will have only the file name and not the full path of image storage.
+    const basePath = `${req.protocol}://${req.get('host')}/public/upload/`;
 
     let product=new Product({
         id:req.body.id,
         name:req.body.name,
         description:req.body.description,
         richDescription:req.body.richDescription,
-        image:req.body.image,
-        images:req.body.images,
+        image:`${basePath}${filename}`,
         brand:req.body.brand,
         price:req.body.price,
         category:req.body.category,
@@ -145,4 +186,34 @@ router.get(`/filterByCategory`, async(req,res)=>{
     res.status(200).send(productList);
 });
 
+//For uploading gallery of images
+//We can specify the number of images it can upload per request
+router.put('/gallery-images/:id',uploadOptions.array('images',10),async(req,res)=>{
+    if(!mongoose.isValidObjectId(req.params.id)){
+        return res.status(400).send('invalid Product Id');
+    }
+    const basePath = `${req.protocol}://${req.get('host')}/public/upload/`;
+    const files=req.files;
+    let imagePaths=[];
+    files?.map(file=>{
+        imagePaths.push(`${basePath}${req.file.fieldname}`)
+    })
+    const product= await Product.findByIdAndUpdate(req.params.id,{
+        images:imagePaths,  
+    },{new:true});
+    if(!product){
+        return res.status(500).json({success:false, message:'Product Images has not been uploaded!!'})
+    }
+    res.status(200).send(product);
+})
+
+router.get(`/get/count`,async (req,res)=>{
+    const userCount = await User.countDocuments((count)=>count);
+    if(!userCount){
+         return res.status(500).json({success:false});
+    }
+    res.status(200).send({
+        count:userCount
+    });
+})
 module.exports=router;

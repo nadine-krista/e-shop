@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 const productSchema = mongoose.Schema({
-    id: String,
+
     name: {
         type: String,
         required: true,
@@ -52,7 +52,7 @@ const productSchema = mongoose.Schema({
     },
     dateCreated: {
         type: Date,
-        default: Date.now,
+        default: Date.now(),
     },
 })
 

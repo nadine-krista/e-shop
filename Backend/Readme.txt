@@ -35,4 +35,23 @@
 ## to filter based on multiple categories we can use an array to pass the category id's
 ## if we pass like this to find method like {category:categories} if no category are passed we will get no data returned
 ## to replace _id with id we have to use virtual in the model 
-## 
+## bcryptjs is used to hash a password and a salt can be added to hash it so that no one can decrpt it.
+## salt can be a number of a string
+## timer is used 
+## Installing Multer library to upload images to server using nodejs.
+## populate('user','name') will populate name field only from User table.
+## sort('dateOrdered') -- sort field by dateOrdered field.
+## To sort from newest to oldest. use sort({'dateOrdered':-1})
+## populate product inside orderItems.
+## Instead of getting the total price from Front End it is advisable to calculate the totalPrice from values stored in DB itself inorder to prevent any hacking.
+## mongoose aggregate method can be used instead of joins.
+## When we upload an image we have to make sure that the name of the uploaded file is unique. amd also multer has option diskstorage to solve this unique naming issue.
+## Every file sent to backend will have a mime type.
+## When the user invokes the login api we need to return the auth token. for this we have to use node js jwt.
+## jsonwebtoken.
+## to make our api's secure we need to ensue if the api's have access token. for this we will use express jwt.
+## backend middleware checks every request before processing it.
+## the logic here we need to check if the token that is being passed to backend was generated using the secret we have used.if so we can authenticate the user to use the api.
+## else reject him.
+## if we use the authjwt check then user will not be able to access login api also.
+## to resolve this issue we need to 
